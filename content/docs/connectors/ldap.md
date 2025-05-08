@@ -354,3 +354,31 @@ connectors:
       nameAttr: cn
 ```
 
+## Example: Searching a FreeIPA server for nested groups 
+
+Some LDAP schemas support group nesting, where groups can contain other groups. Dex supports resolving these indirect group memberships using the `recursive` option within the `groupSearch.userMatchers` block.
+
+You might want to use this if, for example, John is a member of the group `seniorAdmins`, and `seniorAdmins` is itself a member of the group `admins`. With recursive search enabled, John will be treated as a member of both `seniorAdmins` and `admins`, even though he’s only directly assigned to `seniorAdmins`.
+
+The following is a `groupsearch` configuration that enables this functionality. 
+
+```yaml
+    groupSearch:
+      baseDN: cn=groups,dc=freeipa,dc=example,dc=com
+      filter: "(objectClass=group)"
+      userMatchers:
+      - userAttr: uid
+        groupAttr: member
+        recursive: true 
+        recursionGroupAttr: member
+      nameAttr: name
+```
+
+In this example:
+
+1. Dex looks for groups where the member attribute matches the user's `uid`.
+2. Groups can list other groups in their member attribute, allowing nesting.
+3. With `recursive: true`, Dex will look for parent groups that include the user's groups, building a complete list of direct and indirect memberships.
+4. `recursionGroupAttr` tells Dex which attribute to follow when tracing nested group links.
+
+Dex includes built-in cycle detection to prevent infinite loops if group references form a cycle.
